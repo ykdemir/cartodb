@@ -46,7 +46,6 @@ module CartoDB
       end #create_the_geom_from_latlon
 
       def create_the_geom_from_geometry_column
-        geometry_column_name = geometry_column_in(table_name)
         return false unless geometry_column_name
         column = Column.new(db, table_name, geometry_column_name, schema, job)
         column.geometrify
@@ -117,6 +116,17 @@ module CartoDB
         job.log "Identified #{name} as longitude column" if name
         name
       end #longitude_column_name_in
+
+      def geometry_column_name
+        geojson_column_in(table_name) || geometry_column_in(table_name) 
+      end #geometry_column_name
+
+      def geojson_column_in(table_name)
+        sample = db[%Q{SELECT * FROM #{qualified_table_name} LIMIT 1}].first || {}
+        sample.select { |key, value| value =~ Column::GEOJSON_RE }.first.first
+      rescue
+        false
+      end
 
       def geometry_column_in(qualified_table_name)
         names = GEOMETRY_POSSIBLE_NAMES.map { |name| "'#{name}'" }.join(',')
