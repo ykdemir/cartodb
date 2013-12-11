@@ -1,6 +1,6 @@
-// cartodb.js version: 3.4.02-dev
+// cartodb.js version: 3.4.03
 // uncompressed version: cartodb.uncompressed.js
-// sha: 69df37434fa05b45ecfed301c4c60cd30a0593f0
+// sha: f25e8cb2cf84018420ab56ff41e98c564174bcf6
 (function() {
   var root = this;
 
@@ -20429,7 +20429,7 @@ this.LZMA = LZMA;
 
     var cdb = root.cdb = {};
 
-    cdb.VERSION = '3.4.02-dev';
+    cdb.VERSION = '3.4.03';
     cdb.DEBUG = false;
 
     cdb.CARTOCSS_VERSIONS = {
@@ -21981,7 +21981,7 @@ cdb.geo.Map = cdb.core.Model.extend({
   // set center and zoom according to fit bounds
   fitBounds: function(bounds, mapSize) {
     var z = this.getBoundsZoom(bounds, mapSize);
-    if(z == null) {
+    if(z === null) {
       return;
     }
     // project -> calculate center -> unproject
@@ -22000,6 +22000,8 @@ cdb.geo.Map = cdb.core.Model.extend({
 
   // adapted from leaflat src
   getBoundsZoom: function(boundsSWNE, mapSize) {
+    // sometimes the map reports size = 0 so return null
+    if(mapSize.x === 0 || mapSize.y === 0) return null;
     var size = [mapSize.x, mapSize.y],
     zoom = this.get('minZoom') || 0,
     maxZoom = this.get('maxZoom') || 24,
@@ -23212,7 +23214,7 @@ cdb.geo.ui.StackedLegend = cdb.core.View.extend({
   _checkVisibility: function() {
 
     var visible = _.some(this.options.legends, function(legend) {
-      return legend.model.get("type") && legend.model.get("type") != "none"
+      return legend.model.get("type") && (legend.model.get("type") != "none"  || legend.model.get("template"))
     }, this);
 
     if (visible) {
@@ -29228,7 +29230,7 @@ var Vis = cdb.core.View.extend({
   },
 
   /**
-   * check if all the modules needed to create layers are loaded 
+   * check if all the modules needed to create layers are loaded
    */
   checkModules: function(layers) {
     var mods = Layers.modulesForLayers(layers);
@@ -29455,7 +29457,8 @@ var Vis = cdb.core.View.extend({
         if(layer.legend) {
           layer.legend.data = layer.legend.items;
           var legend = layer.legend;
-          if(legend.items && legend.items.length) {
+
+          if((legend.items && legend.items.length) || legend.template) {
             layer.legend.index = i;
             legends.push(new cdb.geo.ui.Legend(layer.legend));
           }
