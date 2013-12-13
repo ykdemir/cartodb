@@ -1,6 +1,6 @@
 // cartodb.js version: 3.4.02-dev
 // uncompressed version: cartodb.uncompressed.js
-// sha: c5269642bbae594018997c56af046e67ca9781f5
+// sha: c36b0570fe9839b7324d3c689539cb67b9fb129b
 (function() {
   var root = this;
 
@@ -30354,6 +30354,14 @@ cdb.vis.Overlay.register('header', function(data, vis) {
         </h1>\
       {{/title}}\
       {{#description}}<p>{{description}}</p>{{/description}}\
+      {{#mobile_shareable}}\
+        <div class='social'>\
+          <a class='facebook' target='_blank'\
+            href='http://www.facebook.com/sharer.php?u={{share_url}}&text=Map of {{title}}: {{description}}'>F</a>\
+          <a class='twitter' href='https://twitter.com/share?url={{share_url}}&text=Map of {{title}}: {{descriptionShort}}... '\
+           target='_blank'>T</a>\
+        </div>\
+      {{/mobile_shareable}}\
       {{#shareable}}\
         <a href='#' class='share'>Share</a>\
       {{/shareable}}\
@@ -30376,13 +30384,18 @@ cdb.vis.Overlay.register('header', function(data, vis) {
     descriptionShort = descriptionShort.join(' ');
   }
 
+  var shareable = (data.shareable == "false" || !data.shareable) ? null : data.shareable;
+  var mobile_shareable = shareable;
+  mobile_shareable = mobile_shareable && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+
   var header = new cdb.geo.ui.Header({
     title: data.map.get('title'),
     description: description,
     descriptionShort: descriptionShort,
     url: data.url,
     share_url: data.share_url,
-    shareable: (data.shareable == "false" || !data.shareable) ? null : data.shareable,
+    mobile_shareable: mobile_shareable,
+    shareable: shareable && !mobile_shareable,
     template: template
   });
 
