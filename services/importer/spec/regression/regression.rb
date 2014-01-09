@@ -24,7 +24,7 @@ describe 'Importer regression test' do
       runner.run
 
       runner.results.each do |result|
-        result[:success].must_equal true, "---> Importer failed: \n"+runner.report
+        result.success.must_equal true, "---> Importer failed: \n"+runner.report
       end
       runner.db.disconnect
     end
