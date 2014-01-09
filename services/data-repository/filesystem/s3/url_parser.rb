@@ -8,7 +8,8 @@ module DataRepository
         end #initialize
 
         def parse
-          parts = url.path.split('/').delete_if { |part| part.empty? }
+          parts = URI.decode(url.path).split('/')
+            .delete_if { |part| part.empty? }
           bucket_name = parts.first
           object_name = parts[1..-1].join('/')
           [bucket_name, object_name]
