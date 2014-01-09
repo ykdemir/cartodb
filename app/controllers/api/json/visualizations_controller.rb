@@ -233,8 +233,8 @@ class Api::Json::VisualizationsController < Api::ApplicationController
   end
 
   def table_names_from_oids(oids)
-    query = %Q(SELECT relname FROM pg_class WHERE oid IN)
-    current_user.in_database.fetch(query, oids).map(:oid)
+    query = %Q(SELECT relname FROM pg_class WHERE oid IN ?)
+    current_user.in_database.fetch(query, oids).map(:relname)
   end
 end # Api::Json::VisualizationsController
 
