@@ -14,18 +14,15 @@ class S3Uploader
   end
 
   def s3_configuration
-    return @s3_configuration if defined?(@s3_configuration)
-
     return {} if configuration[:importer].nil? || 
                 configuration[:importer].empty?
     return {} if configuration[:importer]['s3'].nil? || 
                 configuration[:importer]['s3'].empty?
-
-    @s3_configuration = configuration[:importer]['s3'].symbolize_keys
+    configuration[:importer]['s3'].symbolize_keys
   end
 
   def s3
-    @s3 ||= DataRepository::Filesystem::S3::Backend.new(s3_configuration)
+    DataRepository::Filesystem::S3::Backend.new(s3_configuration)
   end
 
   def upload(path, data)
