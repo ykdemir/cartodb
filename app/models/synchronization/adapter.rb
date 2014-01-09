@@ -12,6 +12,7 @@ module CartoDB
         @runner       = runner
         @database     = database
         @user         = user
+        @table        = ::Table.find_by_identifier(user.id, table_name)
       end
 
       def run(&tracker)
@@ -33,9 +34,9 @@ module CartoDB
         return false unless runner.remote_data_updated?
 
         temporary_name = temporary_name_for(result.table_name)
-        move_to_schema(result)
 
         database.transaction do
+          move_to_schema(result)
           rename(table_name, temporary_name) if exists?(table_name)
           rename(result.table_name, table_name)
           drop(temporary_name) if exists?(temporary_name)
@@ -45,11 +46,11 @@ module CartoDB
       end
 
       def cartodbfy(table_name)
-        table = ::Table.where(name: table_name, user_id: user.id).first
-        #table.migrate_existing_table = table_name
+        table.table_id = oid_from(table_name)
+        table.migrate_existing_table = table_name
+        table.save
         table.force_schema = true
         table.send :update_updated_at
-        table.import_to_cartodb(table_name)
         table.schema(reload: true)
         table.import_cleanup
         table.schema(reload: true)
@@ -62,7 +63,7 @@ module CartoDB
         table.send :set_trigger_track_updates
         table.save
         table.send(:invalidate_varnish_cache)
-        update_cdb_tablemetadata(table.name)
+        update_cdb_tablemetadata(table_name)
         database.run("UPDATE #{table_name} SET updated_at = NOW() WHERE cartodb_id IN (SELECT MAX(cartodb_id) from #{table_name})")
       rescue => exception
         stacktrace = exception.to_s + exception.backtrace.join
@@ -71,16 +72,16 @@ module CartoDB
         table.send(:invalidate_varnish_cache)
       end
 
-      def update_cdb_tablemetadata(name)
+      def update_cdb_tablemetadata(table_id)
         user.in_database(as: :superuser).run(%Q{
           INSERT INTO cdb_tablemetadata (tabname, updated_at)
-          VALUES ('#{name}'::regclass::oid, NOW())
+          VALUES ('#{table_id}', NOW())
         })
       rescue Sequel::DatabaseError => exception
         user.in_database(as: :superuser).run(%Q{
-           UPDATE cdb_tablemetadata
-           SET updated_at = NOW()
-           WHERE tabname = '#{name}'::regclass
+          UPDATE cdb_tablemetadata
+          SET updated_at = NOW()
+          WHERE tabname = #{table_id}
         })
       end
 
@@ -113,6 +114,13 @@ module CartoDB
           ALTER TABLE "public"."#{current_name}"
           RENAME TO "#{new_name}"
         })
+      end
+
+      def oid_from(table_name)
+        database[%Q(
+          SELECT '#{DESTINATION_SCHEMA}.#{table_name}'::regclass::oid
+          AS oid
+        )].first.fetch(:oid)
       end
 
       def drop(table_name)
@@ -176,7 +184,7 @@ module CartoDB
 
       private
 
-      attr_reader :table_name, :runner, :database, :user
+      attr_reader :table_name, :runner, :database, :user, :table
     end # Synchronization
   end # Connector
 end # CartoDB
