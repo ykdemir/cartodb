@@ -155,6 +155,10 @@ module CartoDB
         CartoDB::Varnish.new.purge("obj.http.X-Cache-Channel ~ .*#{id}:vizjson")
       end #invalidate_varnish_cache
 
+      def privacy_text
+        self.private? ? 'PRIVATE' : 'PUBLIC'
+      end
+
       private
 
       attr_reader   :repository, :name_checker, :validator
@@ -174,9 +178,7 @@ module CartoDB
       end #propagate_privacy_to
 
       def propagate_name_to(table)
-        table.name = self.name
-        table.update(name: self.name)
-        table.send(:update_name_changes)
+        table.rename_to(name)
         self
       end #propagate_name_to
 
