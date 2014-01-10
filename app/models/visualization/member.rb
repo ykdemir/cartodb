@@ -55,6 +55,7 @@ module CartoDB
         validator.validate_presence_of(name: name, privacy: privacy, type: type)
         validator.validate_in(:privacy, privacy, PRIVACY_VALUES)
         validator.validate_uniqueness_of(:name, available_name?)
+        validator.validate_uniqueness_of(:name, valid_table_name?) if type == 'table'
         validator.valid?
       end #valid?
 
@@ -192,6 +193,10 @@ module CartoDB
       def name_checker
         @name_checker || NameChecker.new(user)
       end #name_cheker
+      
+      def valid_table_name?
+        return true unless !!name.match(/^\_/)
+      end #valid_table_name?
 
       def available_name?
         return true unless user && name_changed

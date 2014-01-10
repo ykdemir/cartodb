@@ -198,6 +198,16 @@ describe Visualization::Member do
         visualization.name = 'Visualization 1'
         visualization.name.should == 'Visualization 1'
       end
+
+      it "should not allow table names starting with undercase" do
+        visualization = Visualization::Member.new(type: 'table', privacy: 'public')
+        visualization.name = 'visualization_1'
+        visualization.valid?.should == true
+        
+        visualization = Visualization::Member.new(type: 'table', privacy: 'public')
+        visualization.name = '_visualization_1'
+        visualization.valid?.should == false
+      end
     end #name
 
     describe '#full_errors' do
