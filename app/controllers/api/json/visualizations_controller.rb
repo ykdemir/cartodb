@@ -15,11 +15,9 @@ class Api::Json::VisualizationsController < Api::ApplicationController
   ssl_allowed :vizjson1, :vizjson2
   ssl_required :index, :show, :create, :update, :destroy
   skip_before_filter :api_authorization_required, only: [:vizjson1, :vizjson2]
-  before_filter :link_ghost_tables, only: [:index, :show]
 
   def index
-    filter = { 'per_page' => 20}
-      .merge(params.dup.merge(scope_for(current_user)))
+    filter           = params.dup.merge(scope_for(current_user))
     collection       = Visualization::Collection.new.fetch(filter)
     map_ids          = collection.map(&:map_id).to_a
     tables           = tables_by_map_id(map_ids)

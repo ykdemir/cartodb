@@ -45,17 +45,17 @@ module CartoDB
         return {} unless table
         table_data = {
           id:           table.id,
-          name:         visualization.name
+          name:         table.name
         }
 
         table_data.merge!(
-          privacy:      table.privacy_text,
+          privacy:      visualization.privacy_text,
           updated_at:   table.updated_at
         ) #if options.fetch(:table_data, true)
 
         table_data.merge!(
-          size:         rows_and_sizes[table.name][:size],
-          row_count:    rows_and_sizes[table.name][:rows]
+          size:         rows_and_sizes[visualization.name][:size],
+          row_count:    rows_and_sizes[visualization.name][:rows]
         ) unless rows_and_sizes.nil? || rows_and_sizes.empty?
         table_data
       end #table_data_for

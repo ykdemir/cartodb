@@ -308,24 +308,25 @@ class User < Sequel::Model
     in_database[query].map(:oid)
   end
 
-  def unregistered_oids
-    table_ids - Table.where(user_id: id).map(&:table_id)
+  def unregistered_oids(table_ids)
+    table_ids - ::Table.where(user_id: id).map(:table_id)
   end
 
-  def orphaned_table_objects
-    table_ids = self.table_ids
+  def orphaned_table_objects(table_ids=nil)
+    table_ids ||= self.table_ids
     Table.where(user_id: id).reject { |table|
       table_ids.include?(table.table_id)
     }
   end
 
-  def register_new_tables_in_database
+  def register_new_tables_in_database(table_ids_in_db=nil)
     return self if over_table_quota?
+    table_ids ||= self.table_ids
+    unregistered_oids = self.unregistered_oids(table_ids)
     Hash[real_tables.map { |record| [record[:oid], record[:relname]] }]
       .select { |oid, name| unregistered_oids.include?(oid) }
       .each { |oid, name| register_table(oid, name) }
   end
-
 
   def register_table(oid, name)
     return self if over_table_quota?
@@ -343,15 +344,16 @@ class User < Sequel::Model
     puts exception.to_s + exception.backtrace.join("\n")
   end
 
-  def unregister_orphaned_metadata_records
-    orphaned_table_objects.each(&:destroy)
+  def unregister_orphaned_metadata_records(table_ids=nil)
+    orphaned_table_objects(table_ids).each(&:destroy)
   rescue => exception
     puts exception.to_s + exception.backtrace.join("\n")
   end
 
   def sync_tables_metadata
-    unregister_orphaned_metadata_records
-    register_new_tables_in_database
+    table_ids = self.table_ids 
+    unregister_orphaned_metadata_records(table_ids)
+    register_new_tables_in_database(table_ids)
   rescue => exception
     puts exception.to_s + exception.backtrace.join("\n")
   end
