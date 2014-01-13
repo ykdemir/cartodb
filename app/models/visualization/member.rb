@@ -55,6 +55,7 @@ module CartoDB
         validator.validate_presence_of(name: name, privacy: privacy, type: type)
         validator.validate_in(:privacy, privacy, PRIVACY_VALUES)
         validator.validate_uniqueness_of(:name, available_name?)
+        validator.validate_uniqueness_of(:name, valid_table_name?) if type == 'table'
         validator.valid?
       end #valid?
 
@@ -154,6 +155,10 @@ module CartoDB
         CartoDB::Varnish.new.purge("obj.http.X-Cache-Channel ~ .*#{id}:vizjson")
       end #invalidate_varnish_cache
 
+      def privacy_text
+        self.private? ? 'PRIVATE' : 'PUBLIC'
+      end
+
       private
 
       attr_reader   :repository, :name_checker, :validator
@@ -173,9 +178,7 @@ module CartoDB
       end #propagate_privacy_to
 
       def propagate_name_to(table)
-        table.name = self.name
-        table.update(name: self.name)
-        table.send(:update_name_changes)
+        table.rename_to(name)
         self
       end #propagate_name_to
 
@@ -192,6 +195,10 @@ module CartoDB
       def name_checker
         @name_checker || NameChecker.new(user)
       end #name_cheker
+      
+      def valid_table_name?
+        return true unless !!name.match(/^\_/)
+      end #valid_table_name?
 
       def available_name?
         return true unless user && name_changed

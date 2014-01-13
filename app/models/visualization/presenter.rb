@@ -26,7 +26,7 @@ module CartoDB
           created_at:       visualization.created_at,
           updated_at:       visualization.updated_at
         }
-        poro.merge!(table: table_data_for(table))
+        poro.merge!(table: table_data_for(table, visualization))
         poro.merge!(synchronization: synchronization)
         poro.merge!(related) if options.fetch(:related, true)
         poro
@@ -41,7 +41,7 @@ module CartoDB
         { related_tables:   related_tables }
       end #related
 
-      def table_data_for(table=nil)
+      def table_data_for(table=nil, visualization)
         return {} unless table
         table_data = {
           id:           table.id,
@@ -49,13 +49,13 @@ module CartoDB
         }
 
         table_data.merge!(
-          privacy:      table.privacy_text,
+          privacy:      visualization.privacy_text,
           updated_at:   table.updated_at
         ) #if options.fetch(:table_data, true)
 
         table_data.merge!(
-          size:         rows_and_sizes[table.name][:size],
-          row_count:    rows_and_sizes[table.name][:rows]
+          size:         rows_and_sizes[visualization.name][:size],
+          row_count:    rows_and_sizes[visualization.name][:rows]
         ) unless rows_and_sizes.nil? || rows_and_sizes.empty?
         table_data
       end #table_data_for
@@ -67,7 +67,7 @@ module CartoDB
 
       def related_tables
         without_associated_table(visualization.related_tables)
-          .map { |table| table_data_for(table) }
+          .map { |table| table_data_for(table, visualization) }
       end #related_tables
 
       def without_associated_table(tables)

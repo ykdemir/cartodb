@@ -15,15 +15,14 @@ class Api::Json::VisualizationsController < Api::ApplicationController
   ssl_allowed :vizjson1, :vizjson2
   ssl_required :index, :show, :create, :update, :destroy
   skip_before_filter :api_authorization_required, only: [:vizjson1, :vizjson2]
-  before_filter :link_ghost_tables, only: [:index, :show]
 
   def index
-    collection       = Visualization::Collection.new.fetch(
-                         params.dup.merge(scope_for(current_user))
-                       )
+    filter           = params.dup.merge(scope_for(current_user))
+    collection       = Visualization::Collection.new.fetch(filter)
     map_ids          = collection.map(&:map_id).to_a
     tables           = tables_by_map_id(map_ids)
-    table_names      = tables.values.map { |t| t.name }
+    table_oids       = tables.values.map(&:table_id)
+    table_names      = table_names_from_oids(table_oids)
     synchronizations = synchronizations_by_table_name(table_names)
     rows_and_sizes   = rows_and_sizes_for(table_names)
 
@@ -46,6 +45,7 @@ class Api::Json::VisualizationsController < Api::ApplicationController
       visualizations: representation,
       total_entries:  collection.total_entries
     }
+    current_user.update_visualization_metrics
     render_jsonp(response)
   end #index
 
@@ -81,6 +81,7 @@ class Api::Json::VisualizationsController < Api::ApplicationController
     collection  = Visualization::Collection.new.fetch
     collection.add(member)
     collection.store
+    current_user.update_visualzation_metrics
     render_jsonp(member)
   rescue CartoDB::InvalidMember => exception
     render_jsonp({ errors: member.full_errors }, 400)
@@ -110,8 +111,8 @@ class Api::Json::VisualizationsController < Api::ApplicationController
   def destroy
     member = Visualization::Member.new(id: params.fetch('id')).fetch
     return(head 401) unless member.authorize?(current_user)
-
     member.delete
+    current_user.update_visualization_metrics
     return head 204
   rescue KeyError
     head(404)
@@ -227,6 +228,11 @@ class Api::Json::VisualizationsController < Api::ApplicationController
         }]
       }
     ]
+  end
+
+  def table_names_from_oids(oids)
+    query = %Q(SELECT relname FROM pg_class WHERE oid IN ?)
+    current_user.in_database.fetch(query, oids).map(:relname)
   end
 end # Api::Json::VisualizationsController
 
