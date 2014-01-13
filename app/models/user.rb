@@ -341,7 +341,13 @@ class User < Sequel::Model
     table.map.recalculate_bounds!
     self
   rescue => exception
-    puts exception.to_s + exception.backtrace.join("\n")
+    stacktrace = exception.to_s + exception.backtrace.join("\n")
+    puts stacktrace
+    Rollbar.report_message(
+      "Ghost table registration error",
+      "error",
+      error_info: stacktrace
+    )
   end
 
   def unregister_orphaned_metadata_records(table_ids=nil)
