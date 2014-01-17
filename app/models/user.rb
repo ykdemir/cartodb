@@ -109,8 +109,8 @@ class User < Sequel::Model
         rescue Sequel::DatabaseError => e
           conn.run("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '#{database_name}'")
         end
-        conn.run("DROP DATABASE #{database_name}")
-        conn.run("DROP USER #{database_username}")
+        conn.run("DROP DATABASE \"#{database_name}\"")
+        conn.run("DROP USER \"#{database_username}\"")
     end.join
     monitor_user_notification
   end
